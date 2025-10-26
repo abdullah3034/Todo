@@ -1,0 +1,58 @@
+version: "3.8"
+
+services:
+  # -------------------------
+  # PostgreSQL Database
+  # -------------------------
+  db:
+    image: postgres:17.6
+    container_name: todo_db
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: "Dita8220#"
+      POSTGRES_DB: todo_app
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  # -------------------------
+  # Backend: Node.js / Express
+  # -------------------------
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: todo_server
+    ports:
+      - "5000:5000"
+    environment:
+      DB_USER: postgres
+      DB_HOST: db
+      DB_NAME: todo_app
+      DB_PASSWORD: "Dita8220#"
+      DB_PORT: 5432
+    depends_on:
+      - db
+    volumes:
+      - ./server:/usr/src/app
+
+  # -------------------------
+  # Frontend: React + Tailwind
+  # -------------------------
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    container_name: todo_client
+    ports:
+      - "3000:80"
+    depends_on:
+      - server
+
+# -------------------------
+# Persistent Volume for Database
+# -------------------------
+volumes:
+  db_data:
