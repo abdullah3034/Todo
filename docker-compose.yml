@@ -1,58 +1,56 @@
-version: "3.8"
+version: '3.8'
 
 services:
-  # -------------------------
   # PostgreSQL Database
-  # -------------------------
-  db:
-    image: postgres:17.6
-    container_name: todo_db
-    restart: always
+  database:
+    image: postgres:15-alpine
+    container_name: todo-database
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: "Dita8220#"
       POSTGRES_DB: todo_app
-    volumes:
-      - db_data:/var/lib/postgresql/data
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: Dita8220#
     ports:
       - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./server/database.sql:/docker-entrypoint-initdb.d/database.sql
+    networks:
+      - todo-network
 
-  # -------------------------
-  # Backend: Node.js / Express
-  # -------------------------
-  server:
-    build:
-      context: ./server
-      dockerfile: Dockerfile
-    container_name: todo_server
+  # Express Backend
+  backend:
+    build: ./server
+    container_name: todo-backend
     ports:
       - "5000:5000"
     environment:
-      DB_USER: postgres
-      DB_HOST: db
-      DB_NAME: todo_app
-      DB_PASSWORD: "Dita8220#"
-      DB_PORT: 5432
+      - NODE_ENV=production
+      - DB_HOST=database
+      - DB_PORT=5432
+      - DB_NAME=todo_app
+      - DB_USER=postgres
+      - DB_PASSWORD=Dita8220#
     depends_on:
-      - db
-    volumes:
-      - ./server:/usr/src/app
+      - database
+    networks:
+      - todo-network
 
-  # -------------------------
-  # Frontend: React + Tailwind
-  # -------------------------
-  client:
-    build:
-      context: ./client
-      dockerfile: Dockerfile
-    container_name: todo_client
+  # React Frontend
+  frontend:
+    build: ./client
+    container_name: todo-frontend
     ports:
-      - "3000:80"
+      - "3000:3000"
+    environment:
+      - REACT_APP_API_URL=http://localhost:5000
     depends_on:
-      - server
+      - backend
+    networks:
+      - todo-network
 
-# -------------------------
-# Persistent Volume for Database
-# -------------------------
 volumes:
-  db_data:
+  postgres_data:
+
+networks:
+  todo-network:
+    driver: bridge
